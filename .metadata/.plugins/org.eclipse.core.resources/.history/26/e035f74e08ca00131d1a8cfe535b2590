@@ -1,0 +1,31 @@
+package com.example.securepicturetransfer;
+
+import java.io.ByteArrayOutputStream;
+
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+
+public class EncryptImage implements Runnable 
+{
+
+	public EncryptImage(Bitmap bitmap) 
+	{
+		ByteArrayOutputStream stream=new ByteArrayOutputStream();
+		bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+	    byte[] image=stream.toByteArray();
+	    
+	    
+	    Bitmap bmp = BitmapFactory.decodeByteArray(image, 0, image.length);
+	    //ImageView image = (ImageView) findViewById(R.id.imageView1);
+
+	    //imageView.setImageBitmap(bmp);
+		
+	}
+
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+
+	}
+
+}

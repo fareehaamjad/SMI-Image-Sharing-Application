@@ -1,0 +1,45 @@
+package com.example.securepicturetransfer;
+
+import java.io.ByteArrayOutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.widget.ImageView;
+
+public class EncryptImage implements Runnable 
+{
+
+	Bitmap bitmap;
+	ImageView imageView;
+	MessageDigest md;
+	
+	public EncryptImage(Bitmap bitmap, ImageView imageView) throws NoSuchAlgorithmException 
+	{
+		
+	    this.bitmap = bitmap;
+	    this.imageView = imageView;
+	    
+	    md = MessageDigest.getInstance("SHA-256");
+	    
+	    
+	    
+	    //Bitmap bmp = BitmapFactory.decodeByteArray(image, 0, image.length);
+	    //ImageView image = (ImageView) findViewById(R.id.imageView1);
+
+	    //imageView.setImageBitmap(bmp);
+		
+	}
+
+	@Override
+	public void run() {
+		
+		
+		ByteArrayOutputStream stream=new ByteArrayOutputStream();
+		bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+	    byte[] image=stream.toByteArray();
+	    
+	}
+
+}

@@ -1,0 +1,458 @@
+package com.example.securepicturetransfer;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
+
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.app.Activity;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
+import android.os.Bundle;
+import android.provider.MediaStore;
+import android.telephony.SmsManager;
+import android.util.Base64;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ImageView;
+
+public class MainActivity extends Activity 
+{
+	
+	
+	Button buttonLoadImage;
+	Button send;
+	Button cancel;
+	
+	public static Bitmap bitmap;
+	public static SharedPreferences s;
+	public static EncryptionManager encryptionManager;
+	
+	private static boolean exchangeKeys = false;
+	private static boolean exchangeKeysTrying = false;
+	
+	
+	public static EncryptImage encImage; 
+	private static int RESULT_LOAD_IMAGE = 1;
+	
+	private static final String URL = "http://172.26.234.59/SMS_Server";
+	public static String KEY_nonce = "nonce";
+	public static String KEY_message_from = "messageFrom";
+	public static String KEY_message_to = "messageTo";
+	public static String KEY_message = "message";
+	
+	public static String separator = "`~~`";
+	
+	public static String private_key = "Private key";
+    public static String public_key = "Public key";
+    public static String AES_key = "AES key";
+    public static String HEADER_DATA = "data";
+    public static String HEADER_DATA_METADATA = "data-meta";
+    
+    public static String HEADER_METADATA = "meta";
+    public static String HEADER_REPLY_METADATA = "rep-meta";
+    public static String HEADER_VERIFY_META = "verify-meta";
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        
+        buttonLoadImage = (Button) findViewById(R.id.buttonLoadPicture);
+        send = (Button) findViewById(R.id.send);
+        cancel = (Button) findViewById(R.id.cancel);
+        
+        s= getPreferences(Activity.MODE_PRIVATE);
+        
+        encryptionManager = new EncryptionManager( s , "testpassword");
+        
+        if (s.getString("phone_number", null) == null)
+		{
+			Log.i("phone number", "getting phone number from user: should only happen once!!");
+			getPhoneNo();
+		}
+        
+        
+        
+        buttonLoadImage.setOnClickListener(new View.OnClickListener() {
+			
+			@Override
+			public void onClick(View arg0) {
+				
+				Intent i = new Intent(
+						Intent.ACTION_PICK,
+						android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+				
+				startActivityForResult(i, RESULT_LOAD_IMAGE);
+			}
+		});
+
+       
+    }
+
+
+    private void getPhoneNo() 
+    {
+    	Intent k = new Intent(this, GetPhoneNo.class);
+        startActivity(k);
+		
+	}
+
+
+	@Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    	super.onActivityResult(requestCode, resultCode, data);
+    	
+		if (requestCode == RESULT_LOAD_IMAGE && resultCode == RESULT_OK && null != data) {
+			Uri selectedImage = data.getData();
+			String[] filePathColumn = { MediaStore.Images.Media.DATA };
+
+			Cursor cursor = getContentResolver().query(selectedImage,
+					filePathColumn, null, null, null);
+			cursor.moveToFirst();
+
+			int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
+			String picturePath = cursor.getString(columnIndex);
+			cursor.close();
+			
+			final ImageView imageView = (ImageView) findViewById(R.id.imgView);
+			 bitmap = BitmapFactory.decodeFile(picturePath);
+			imageView.setImageBitmap(bitmap);
+		
+			
+			buttonLoadImage.setVisibility(View.INVISIBLE);
+			send.setVisibility(View.VISIBLE);
+			cancel.setVisibility(View.VISIBLE);
+			
+			
+			
+			send.setOnClickListener(new View.OnClickListener() {
+				
+				@Override
+				public void onClick(View arg0) 
+				{
+					Intent i = new Intent(MainActivity.this, SelectContact.class);
+					startActivity(i);
+					//checkKeyExchange();
+
+					/*try 
+					{
+						encImage = new EncryptImage(bitmap, imageView);
+						new Thread(encImage).start();
+						
+						while (!encImage.done);
+						//Bitmap bmp = BitmapFactory.decodeByteArray(encImage.image, 0, encImage.image.length);
+					    //imageView.setImageBitmap(bmp);
+					    
+					    
+					    String AESencImage = encImage.AESEncryptImage();
+					    
+					   			    
+					    
+					    //byte[] decodedImage = encImage.AESdecodeImage(AESencImage);
+					    
+					    //Bitmap bmp = BitmapFactory.decodeByteArray(decodedImage, 0, encImage.image.length);
+					    //imageView.setImageBitmap(bmp);
+					    
+					    imageView.setImageBitmap(null);
+						
+					} catch (NoSuchAlgorithmException e) 
+					{
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}*/
+
+					
+				}
+
+				
+			});
+
+			cancel.setOnClickListener(new View.OnClickListener() {
+				
+				@Override
+				public void onClick(View arg0) 
+				{
+					buttonLoadImage.setVisibility(View.VISIBLE);
+					send.setVisibility(View.INVISIBLE);
+					cancel.setVisibility(View.INVISIBLE);
+					
+				}
+			});
+			
+		}
+    
+    
+    }
+    
+	private void exchangeKeys() 
+	{
+		exchangeKeysTrying = true;
+		//generating nonce
+        String nonce = getNonce();
+
+        //generating meta-data
+        String metadata = getMetaData(MainActivity.HEADER_METADATA);
+        
+        //fetching public key and public modulus
+        String publicKey = getPublicKey();
+        
+        //store challenge with number
+        String metaD =  metadata.replace(MainActivity.HEADER_METADATA, "");
+	
+		Log.i("meta after replacing", metaD);
+		
+        String challenge = metaD + "," + nonce;
+        challenge = challenge.replace(MainActivity.separator, "");
+        
+		
+		
+        String challengeNo = MainActivity.ServerNo;
+        MainActivity.addChallenge(challengeNo, challenge);
+        
+        String message = metadata + publicKey + nonce;
+        
+        Log.i("message to send", message);
+        
+        sendLongSMS(message, MainActivity.ServerNo);
+    
+	}
+
+
+	private String getMetaData(String hEADER_METADATA2) {
+		//phone No:
+				String metadata = header;
+		        metadata += MainActivity.separator;
+		        metadata += MainActivity.s.getString("phone_number", null);
+		        metadata += "--";
+		        
+		        //location
+		        if(MainActivity.mGPS.canGetLocation )
+		        {
+		        	double mLat = MainActivity.mGPS.getLatitude();
+		        	double mLong = MainActivity.mGPS.getLongitude();
+		        	
+		        	metadata += Double.toString(mLat);
+		        	metadata += ":";
+		        	metadata += Double.toString(mLong);
+		        	metadata += "--";
+		        }
+		        else
+		        {
+		        	Log.e("Location", "can't get the location");
+		        }
+		        
+		        //DateTime
+		        final Calendar c = Calendar.getInstance();
+		        int mYear = c.get(Calendar.YEAR);
+		        int mMonth = c.get(Calendar.MONTH);
+		        int mDay = c.get(Calendar.DAY_OF_MONTH);
+		        metadata += mDay+"-"+mMonth+"-"+mYear;
+		        metadata += ":";
+		        
+		        Time time = new Time();
+		        time.setToNow();
+		        metadata += time.hour+":"+time.minute;
+		        metadata += MainActivity.separator;
+				
+		       
+		        
+		        return metadata;
+	}
+
+
+	public static String getNonce() 
+	{
+		SecureRandom sr = new SecureRandom();
+        byte[] _nonce = new byte[1024/8];
+        sr.nextBytes(_nonce);
+        
+		return (_nonce.toString());
+	}
+    
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+        if (id == R.id.action_settings) {
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+
+	public static void sendToServer(String nonce2, String from, String to,
+			String msg, String header) throws ClientProtocolException, IOException 
+	{
+		Log.i("nonce", nonce2);
+		Log.i("from", from);
+		Log.i("to", to);
+		
+		        
+        String nonce = Base64.encodeToString(nonce2.getBytes(), Base64.DEFAULT);
+        String fromE = Base64.encodeToString(from.getBytes(), Base64.DEFAULT);
+        String toE = Base64.encodeToString(to.getBytes(), Base64.DEFAULT);
+        String msgE = Base64.encodeToString(msg.getBytes(), Base64.DEFAULT);
+        
+        HttpClient client = new DefaultHttpClient();
+        HttpPost post = new HttpPost(MainActivity.URL + "/upload.php");
+        List<NameValuePair> pairs = new ArrayList<NameValuePair>();
+        pairs.add(new BasicNameValuePair(MainActivity.KEY_nonce, nonce));
+        pairs.add(new BasicNameValuePair(MainActivity.KEY_message_from, fromE));
+        pairs.add(new BasicNameValuePair(MainActivity.KEY_message_to, toE));
+        pairs.add(new BasicNameValuePair(MainActivity.KEY_message, msgE));
+        
+        post.setEntity(new UrlEncodedFormEntity(pairs));
+        HttpResponse response = client.execute(post);
+        
+        HttpEntity resEntityGet = response.getEntity();  
+        if (resEntityGet != null) 
+        {  
+            // do something with the response
+            String reply = EntityUtils.toString(resEntityGet);
+            Log.i("GET RESPONSE", reply);
+            
+            if (!(reply.contains("success")))
+            {
+            	Log.e("PHP error", "PHP upload fail \t" + reply);
+            }
+            else
+            {
+            	sendNonce(to, nonce2, header);
+            }
+        }
+		
+	}
+
+
+	private static void sendNonce(String to, String nonce2, String header) 
+	{
+		String msg = header + MainActivity.separator + nonce2;
+		sendLongSMS(msg, to); 
+	}
+
+
+	private static void sendLongSMS(String msg, String to) 
+	{
+		Log.i("long sms", msg + "    to    " + to);
+		SmsManager smsManager = SmsManager.getDefault();
+		ArrayList<String> parts = smsManager.divideMessage(msg); 
+		smsManager.sendMultipartTextMessage(to, null, parts, null, null);
+		
+		//Toast.makeText(getBaseContext(), "Message Sent!", Toast.LENGTH_LONG).show();
+	}
+
+
+	public static void addMsg(Message msg) throws ClientProtocolException, IOException 
+	{
+		
+		//check what the message is about
+		String[] split = msg.message.split(MainActivity.separator);
+		int index = 0;
+				
+		String header = split[index++];
+		
+		if (header.equals(MainActivity.HEADER_DATA))
+		{
+			Log.i("data", "Received picture data nocnce \t" + msg.message);
+			
+			//get message from server
+			String nonce2 = split[index++];
+			Log.i("nonce2", nonce2);
+			String nonce = Base64.encodeToString(nonce2.getBytes(), Base64.DEFAULT);
+			
+			String from 	= msg.number;
+	    	Log.i("from", from);
+	        String fromE = Base64.encodeToString(from.getBytes(), Base64.DEFAULT);
+	        
+	        String to 	= s.getString("phone_number", null);
+	    	Log.i("to", to);
+	        String toE = Base64.encodeToString(to.getBytes(), Base64.DEFAULT);
+	       
+	        HttpClient client = new DefaultHttpClient();
+	        HttpPost post = new HttpPost(MainActivity.URL + "/getMsg.php");
+	        List<NameValuePair> pairs = new ArrayList<NameValuePair>();
+	        pairs.add(new BasicNameValuePair(MainActivity.KEY_nonce, nonce));
+	        pairs.add(new BasicNameValuePair(MainActivity.KEY_message_from, fromE));
+	        pairs.add(new BasicNameValuePair(MainActivity.KEY_message_to, toE));
+
+	        
+	        post.setEntity(new UrlEncodedFormEntity(pairs));
+	        HttpResponse response = client.execute(post);
+	        
+	        HttpEntity resEntityGet = response.getEntity();  
+	        if (resEntityGet != null) 
+	        {  
+	
+	            String reply = EntityUtils.toString(resEntityGet);
+	            Log.i("msg received from server",reply);
+	            
+	            
+	            getAESRSA(reply);
+	            
+	            /*//send own meta-data
+	            String msg_meta = sendMessageFragment.DATAmakeMeta(from, HEADER_REPLY_DATA_METADATA);
+	            try 
+				{
+					sendToServer(nonce2, s.getString("phone_number", null), msg.number, msg_meta, HEADER_REPLY_DATA_METADATA);
+				} catch (IOException e) 
+				{
+					Log.e("Error in sending message to Server", e.toString());
+				}
+	            
+	            //send response of the challenge
+	            sendMessageFragment.DATAreplyMetaData(reply, from, to);*/
+	        }
+		}
+	}
+
+
+	private static void getAESRSA(String reply) 
+	{
+		String[] split = reply.split(MainActivity.separator);
+		int index = 0;
+		
+		String AESencryptImage = split[index++];
+		String RSAencryptKey = split[index++];
+		
+		
+		
+	}
+
+    
+
+}

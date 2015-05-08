@@ -1,0 +1,76 @@
+package com.example.securepicturetransfer;
+
+import java.io.ByteArrayOutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.widget.ImageView;
+
+public class EncryptImage implements Runnable 
+{
+
+	Bitmap bitmap;
+	ImageView imageView;
+	MessageDigest md;
+	StringBuffer SHAhexString;
+	
+	public boolean done = false;
+	byte[] image;
+	
+	
+	public EncryptImage(Bitmap bitmap, ImageView imageView) throws NoSuchAlgorithmException 
+	{
+		
+	    this.bitmap = bitmap;
+	    this.imageView = imageView;
+	    
+	    md = MessageDigest.getInstance("SHA-256");
+	    
+	}
+
+	@Override
+	public void run() {
+		
+		
+		ByteArrayOutputStream stream=new ByteArrayOutputStream();
+		bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+	    
+		image=stream.toByteArray();
+	    
+		done = true;
+	    HashUsingSha1(image);
+	    
+	}
+	
+	public String AESEncryptImage()
+	{
+		
+	}
+
+	private void HashUsingSha1(byte[] image) 
+	{
+		
+	    md.update(image);
+	    
+	    byte[] SHAbyteData = md.digest();
+	    
+	    SHAhexString = new StringBuffer();
+    	for (int i=0;i<SHAbyteData.length;i++) 
+    	{
+    		String hex=Integer.toHexString(0xff & SHAbyteData[i]);
+   	     	
+    		if(hex.length()==1) 
+   	     		SHAhexString.append('0');
+   	     
+   	     	SHAhexString.append(hex);
+    	}
+
+   	     	
+   	     	
+   	     	
+		
+	}
+
+}

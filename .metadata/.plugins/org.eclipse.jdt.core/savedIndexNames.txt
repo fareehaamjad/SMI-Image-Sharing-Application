@@ -1,0 +1,8 @@
+INDEX VERSION 1.126+C:\Users\fa45\Dropbox (NYU CTED Team)\PictureShareSMI\.metadata\.plugins\org.eclipse.jdt.core
+1284074322.index
+4126877344.index
+2350354114.index
+2297194317.index
+1996857029.index
+3866406132.index
+2157853732.index
